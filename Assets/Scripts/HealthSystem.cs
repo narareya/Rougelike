@@ -76,7 +76,7 @@ public class Health : MonoBehaviour
 
     private void Die()
     {
-        Debug.Log(gameObject.name + " has been defeated.");
-        Destroy(gameObject); // The simplest way to handle death
+            Debug.Log(gameObject.name + " has been defeated.");
+            Destroy(gameObject); // The simplest way to handle 
     }
 }
