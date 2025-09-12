@@ -2,47 +2,119 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 
-public class CollectibleSpawner : MonoBehaviour
+// Interface for collectible behavior
+public interface ICollectible
+{
+    void OnCollected();
+    event System.Action<ICollectible> Collected;
+}
+
+[System.Serializable]
+public class CollectibleSpawnRule
 {
     public GameObject collectiblePrefab;
-    public int numberOfCollectibles = 5;
+    [Range(0, 100)]
+    public float spawnWeight = 1f;
+    [Range(0, 100)]
+    public int maxCount = 5;
+}
+
+public class CollectibleSpawner : MonoBehaviour
+{
+    [Header("Spawn Settings")]
+    [SerializeField] private List<CollectibleSpawnRule> collectibles = new List<CollectibleSpawnRule>();
+    [SerializeField] private int totalCollectibleCount = 5;
+    [SerializeField] private int minDistanceFromPlayer = 1;
+
+    [Header("Optional Settings")]
+    [SerializeField] private bool ensureMinimumSpacing = false;
+    [SerializeField] private float minimumSpacingDistance = 2f;
+
+    private List<ICollectible> spawnedCollectibles = new List<ICollectible>();
 
     public void SpawnCollectibles(HashSet<Vector2Int> floorPositions, Vector2Int playerStartPosition)
     {
-        // Convert the floor positions to a list for easier random selection
-        List<Vector2Int> spawnPoints = floorPositions.ToList();
-
-        // Remove the player's start tile and its immediate neighbors to create a safe zone
-        for (int x = -1; x <= 1; x++)
+        if (collectibles.Count == 0)
         {
-            for (int y = -1; y <= 1; y++)
+            Debug.LogWarning("No collectibles configured in the spawner!");
+            return;
+        }
+
+        List<Vector2Int> availableSpawnPoints = GetValidSpawnPoints(floorPositions, playerStartPosition);
+
+        if (availableSpawnPoints.Count == 0)
+        {
+            Debug.LogWarning("No valid spawn points available!");
+            return;
+        }
+
+        int remainingToSpawn = Mathf.Min(totalCollectibleCount, availableSpawnPoints.Count);
+        SpawnCollectiblesRandomly(availableSpawnPoints, remainingToSpawn);
+    }
+
+    private List<Vector2Int> GetValidSpawnPoints(HashSet<Vector2Int> floorPositions, Vector2Int playerStartPosition)
+    {
+        List<Vector2Int> validPoints = floorPositions.ToList();
+
+        // Remove points too close to player
+        validPoints.RemoveAll(point =>
+            Mathf.Abs(point.x - playerStartPosition.x) <= minDistanceFromPlayer &&
+            Mathf.Abs(point.y - playerStartPosition.y) <= minDistanceFromPlayer);
+
+        return validPoints;
+    }
+
+    private void SpawnCollectiblesRandomly(List<Vector2Int> spawnPoints, int count)
+    {
+        float totalWeight = collectibles.Sum(c => c.spawnWeight);
+        List<Vector3> usedPositions = new List<Vector3>();
+
+        while (count > 0 && spawnPoints.Count > 0)
+        {
+            int spawnIndex = Random.Range(0, spawnPoints.Count);
+            Vector2Int spawnPosition = spawnPoints[spawnIndex];
+            Vector3 worldPosition = new Vector3(spawnPosition.x + 0.5f, spawnPosition.y + 0.5f, 0);
+
+            if (ensureMinimumSpacing && usedPositions.Any(pos => Vector3.Distance(pos, worldPosition) < minimumSpacingDistance))
             {
-                spawnPoints.Remove(playerStartPosition + new Vector2Int(x, y));
+                spawnPoints.RemoveAt(spawnIndex);
+                continue;
             }
+
+            float randomValue = Random.Range(0, totalWeight);
+            float currentWeight = 0;
+
+            foreach (var rule in collectibles)
+            {
+                currentWeight += rule.spawnWeight;
+                if (randomValue <= currentWeight && 
+                    spawnedCollectibles.Count(c => c != null && c.GetType() == rule.collectiblePrefab.GetComponent<ICollectible>()?.GetType()) < rule.maxCount)
+                {
+                    var obj = Instantiate(rule.collectiblePrefab, worldPosition, Quaternion.identity);
+                    var collectible = obj.GetComponent<ICollectible>();
+                    if (collectible != null)
+                    {
+                        collectible.Collected += OnCollectibleCollected;
+                        spawnedCollectibles.Add(collectible);
+                    }
+                    usedPositions.Add(worldPosition);
+                    break;
+                }
+            }
+
+            spawnPoints.RemoveAt(spawnIndex);
+            count--;
         }
+    }
 
-        // Ensure we don't try to spawn more collectibles than there are available tiles
-        if (spawnPoints.Count < numberOfCollectibles)
-        {
-            Debug.LogWarning("Not enough valid spawn points for the requested number of collectibles! Spawning as many as possible.");
-            numberOfCollectibles = spawnPoints.Count;
-        }
+    private void OnCollectibleCollected(ICollectible collectible)
+    {
+        // Here you can add logic to add to inventory, update UI, etc.
+        spawnedCollectibles.Remove(collectible);
+    }
 
-        // Loop to spawn the specified number of collectibles
-        for (int i = 0; i < numberOfCollectibles; i++)
-        {
-            // Pick a random spawn point from the list
-            int randomIndex = Random.Range(0, spawnPoints.Count);
-            Vector2Int spawnPosition = spawnPoints[randomIndex];
-
-            // Convert the tile position to a world position (centered in the tile)
-            Vector3 spawnWorldPosition = new Vector3(spawnPosition.x + 0.5f, spawnPosition.y + 0.5f, 0);
-
-            // Create the collectible instance
-            Instantiate(collectiblePrefab, spawnWorldPosition, Quaternion.identity);
-
-            // Remove this point from the list so we don't spawn another collectible on the same tile
-            spawnPoints.RemoveAt(randomIndex);
-        }
+    public void ClearSpawnedCollectibles()
+    {
+        spawnedCollectibles.Clear();
     }
 }
