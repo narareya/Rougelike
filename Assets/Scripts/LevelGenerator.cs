@@ -5,6 +5,7 @@ using System.Collections.Generic;
 public class LevelGenerator : MonoBehaviour
 {
     public EnemySpawner enemySpawner;
+    public CollectibleSpawner collectibleSpawner;
 
     public GameObject gridPrefab;
     public Tile floorTile;
@@ -66,6 +67,15 @@ public class LevelGenerator : MonoBehaviour
                 else
                 {
                     Debug.LogWarning("EnemySpawner reference is missing! No enemies will be spawned.");
+                }
+
+                if (collectibleSpawner != null) 
+                { 
+                    collectibleSpawner.SpawnCollectibles(floorPositions, startPosition);
+                }
+                else
+                {
+                    Debug.LogWarning("CollectibleSpawner reference is missing! No collectibles will be spawned.");
                 }
 
                 return; // Level is good, stop trying

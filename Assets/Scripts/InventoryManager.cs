@@ -8,8 +8,6 @@ public class InventoryManager : MonoBehaviour
     public GameObject InventoryMenu;
     private bool menuActivated;
 
-    public List<InventoryItem> items = new List<InventoryItem>();
-
     void Awake()
     {
         inventoryAction = new InputAction("Inventory", binding: "<Keyboard>/i");
@@ -32,5 +30,11 @@ public class InventoryManager : MonoBehaviour
         menuActivated = !menuActivated;
         InventoryMenu.SetActive(menuActivated);
         Time.timeScale = menuActivated ? 0f : 1f;
+    }
+
+    public static void AddItem(string itemName, Sprite icon, int quantity)
+    {
+        // Log pickup for debugging
+        Debug.Log($"Collected: {itemName} x{quantity}");
     }
 }
