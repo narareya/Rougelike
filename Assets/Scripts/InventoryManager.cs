@@ -53,6 +53,19 @@ public class InventoryManager : MonoBehaviour
             return;
         }
 
+        // first, try to find an existing slot with the same item to stack
+        foreach (ItemSlot slot in instance.itemSlots)
+        {
+            if (slot != null && slot.itemName == itemName)
+            {
+                slot.AddItem(itemName, quantity, itemSprite);
+                Debug.Log($"Stacked {quantity} of {itemName} in inventory.");
+                return;
+            }
+        }
+
+
+        // if no existing slot has the same item, find an empty slot
         foreach (ItemSlot slot in instance.itemSlots)
         {
             if (slot != null && !slot.isFull)
@@ -63,6 +76,7 @@ public class InventoryManager : MonoBehaviour
             }
 
         }
+
         Debug.Log("No empty slot available in the inventory.");
 
         // for (int i = 0; i < instance.itemSlots.Length; i++)
