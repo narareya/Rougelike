@@ -4,57 +4,35 @@ using TMPro;
 
 public class ItemSlot : MonoBehaviour
 {
-    // Data yang disimpandi setiap slot inventory
+    [SerializeField] public Image itemImage;
+    [SerializeField] public TMP_Text itemQuantityText;
+
     public string itemName;
     public int quantity;
     public Sprite itemSprite;
-    public bool isFull;
-
-    // Referensi ke komponen UI
-    [SerializeField] private TMP_Text quantityText;
-    [SerializeField] private Image itemImage;
-
     // Start is called once before the first execution of Update after the MonoBehaviour is created
-
-    // public void AddItem(string itemName, int quantity, Sprite itemSprite)
-    // {
-    //     this.itemName = itemName;
-    //     this.quantity = quantity;
-    //     this.itemSprite = itemSprite;
-    //     isFull = false;
-
-    //     quantityText.text = quantity.ToString();
-    //     quantityText.enabled = true;
-    //     itemImage.sprite = itemSprite;
-
-    // }
 
     public void AddItem(string newItemName, int newQuantity, Sprite newItemSprite)
     {
-        if (!isFull)
+        if (itemName == newItemName)
+        {
+            quantity += newQuantity;
+
+        }
+        else
         {
             itemName = newItemName;
-            quantity += newQuantity;
+            quantity = newQuantity;
             itemSprite = newItemSprite;
-            isFull = true;
-
-            Debug.LogWarning("Slot is full with a different item.");
-            UpdateUI();
-            return;
         }
-        else if (itemName == newItemName)
-        {
-            quantity += newQuantity;
-        }
-
-        // Update UI
+        UpdateUI();
     }
 
     public void UpdateUI()
     {
-        quantityText.text = quantity.ToString();
-        quantityText.enabled = true;
-        itemImage.sprite = itemSprite;
+        itemQuantityText.text = quantity.ToString();
         itemImage.enabled = true;
+        itemImage.sprite = itemSprite;
+
     }
 }
