@@ -4,38 +4,32 @@ using UnityEngine.InputSystem;
 
 public class InventoryManager : MonoBehaviour
 {
-    public InputAction inventoryAction;
+    public InputAction OpenInventory;
     public GameObject InventoryMenu;
     private bool menuActivated;
 
-    private static InventoryManager instance;
-    [SerializeField] private ItemSlot[] itemSlots;
+    public GameObject itemSlotPrefab;
+    public Transform inventorySlotsParent;
+
+    private List<ItemSlot> itemSlots = new List<ItemSlot>();
+
+    // Start is called once before the first execution of Update after the MonoBehaviour is created
 
     void Awake()
     {
-        inventoryAction = new InputAction("Inventory", binding: "<Keyboard>/i");
-
-        if (instance == null)
-        {
-            instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+        OpenInventory = new InputAction("OpenInventory", binding: "<Keyboard>/I");
     }
 
     void OnEnable()
     {
-        inventoryAction.Enable();
-        inventoryAction.performed += ToggleInventory;
+        OpenInventory.Enable();
+        OpenInventory.performed += ToggleInventory;
     }
 
     void OnDisable()
     {
-        inventoryAction.performed -= ToggleInventory;
-        inventoryAction.Disable();
+        OpenInventory.performed -= ToggleInventory;
+        OpenInventory.Disable();
     }
 
     private void ToggleInventory(InputAction.CallbackContext context)
@@ -45,49 +39,22 @@ public class InventoryManager : MonoBehaviour
         Time.timeScale = menuActivated ? 0f : 1f;
     }
 
-    public static void AddItem(string itemName, Sprite itemSprite, int quantity)
+    public void AddItem(string itemName, int quantity, Sprite itemSprite)
     {
-        if (instance == null)
+        foreach (var slot in itemSlots)
         {
-            Debug.LogWarning("InventoryManager instance is not set.");
-            return;
-        }
-
-        // first, try to find an existing slot with the same item to stack
-        foreach (ItemSlot slot in instance.itemSlots)
-        {
-            if (slot != null && slot.itemName == itemName)
+            if (slot.itemName == itemName)
             {
                 slot.AddItem(itemName, quantity, itemSprite);
-                Debug.Log($"Stacked {quantity} of {itemName} in inventory.");
+                Debug.Log($"Added {quantity} of {itemName} to inventory.");
                 return;
             }
         }
 
-
-        // if no existing slot has the same item, find an empty slot
-        foreach (ItemSlot slot in instance.itemSlots)
-        {
-            if (slot != null && !slot.isFull)
-            {
-                slot.AddItem(itemName, quantity, itemSprite);
-                Debug.Log($"Added {itemName} to inventory.");
-                return;
-            }
-
-        }
-
-        Debug.Log("No empty slot available in the inventory.");
-
-        // for (int i = 0; i < instance.itemSlots.Length; i++)
-        // {
-        //     if (!instance.itemSlots[i].isFull)
-        //     {
-        //         instance.itemSlots[i].AddItem(itemName, quantity, itemSprite);
-        //         Debug.Log($"Added {itemName} to slot {i}.");
-        //         return;
-        //     }
-        // }
-
+        GameObject newSlotObj = Instantiate(itemSlotPrefab, inventorySlotsParent);
+        ItemSlot newSlot = newSlotObj.GetComponent<ItemSlot>();
+        newSlot.AddItem(itemName, quantity, itemSprite);
+        itemSlots.Add(newSlot);
+        Debug.Log($"Created new slot and added {quantity} of {itemName} to inventory.");
     }
 }
