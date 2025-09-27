@@ -4,8 +4,15 @@ using System.Linq;
 
 public class CollectibleSpawner : MonoBehaviour
 {
-    public GameObject collectiblePrefab;
-    public int numberOfCollectibles = 5;
+    [System.Serializable]
+    public class CollectibleEntry
+    {
+        public GameObject prefab;
+        public int amountToSpawn;
+    }
+
+    [Header("Collectible Settings")]
+    public List<CollectibleEntry> collectibles = new List<CollectibleEntry>();
 
     public void SpawnCollectibles(HashSet<Vector2Int> floorPositions, Vector2Int playerStartPosition)
     {
@@ -15,28 +22,33 @@ public class CollectibleSpawner : MonoBehaviour
         // Remove the player's start position to avoid spawning collectibles there
         spawnPoints.Remove(playerStartPosition);
 
-        // Ensure we don't try to spawn more collectibles than there are available tiles
-        if (spawnPoints.Count < numberOfCollectibles)
+        // Loop through each collectible type
+        foreach (var collectible in collectibles)
         {
-            Debug.LogWarning("Not enough valid spawn points for the requested number of collectibles! Spawning as many as possible.");
-            numberOfCollectibles = spawnPoints.Count;
+            // Safety check
+            if (collectible.prefab == null || collectible.amountToSpawn <= 0) continue;
+
+            // Make sure there are still spawn points left
+            int spawnCount = Mathf.Min(collectible.amountToSpawn, spawnPoints.Count);
+
+            for (int i = 0; i < spawnCount; i++)
+            {
+                int randomIndex = Random.Range(0, spawnPoints.Count);
+                Vector2Int spawnTile = spawnPoints[randomIndex];
+
+                Vector3 spawnWorldPos = new Vector3(spawnTile.x + 0.5f, spawnTile.y + 0.5f, 0);
+
+                Instantiate(collectible.prefab, spawnWorldPos, Quaternion.identity);
+
+                // Remove this tile so we don’t overlap spawns
+                spawnPoints.RemoveAt(randomIndex);
+
+                // If no spawn points left, break early
+                if (spawnPoints.Count == 0) break;
+            }
         }
 
-        // Loop to spawn the specified number of collectibles
-        for (int i = 0; i < numberOfCollectibles; i++)
-        {
-            // Pick a random spawn point from the list
-            int randomIndex = Random.Range(0, spawnPoints.Count);
-            Vector2Int spawnPosition = spawnPoints[randomIndex];
-
-            // Convert the tile position to a world position (centered in the tile)
-            Vector3 spawnWorldPosition = new Vector3(spawnPosition.x + 0.5f, spawnPosition.y + 0.5f, 0);
-
-            // Create the collectible instance
-            Instantiate(collectiblePrefab, spawnWorldPosition, Quaternion.identity);
-
-            // Remove this point from the list so we don't spawn another collectible on the same tile
-            spawnPoints.RemoveAt(randomIndex);
-        }
+        if (spawnPoints.Count == 0)
+            Debug.LogWarning("No more valid spawn points left after spawning!");
     }
 }

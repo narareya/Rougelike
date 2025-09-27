@@ -39,6 +39,7 @@ public class ItemSlot : MonoBehaviour
             isFull = true;
 
             Debug.LogWarning("Slot is full with a different item.");
+            UpdateUI();
             return;
         }
         else if (itemName == newItemName)
@@ -47,9 +48,13 @@ public class ItemSlot : MonoBehaviour
         }
 
         // Update UI
+    }
+
+    public void UpdateUI()
+    {
         quantityText.text = quantity.ToString();
         quantityText.enabled = true;
-        itemImage.sprite = newItemSprite;
+        itemImage.sprite = itemSprite;
         itemImage.enabled = true;
     }
 }
